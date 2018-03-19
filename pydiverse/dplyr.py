@@ -4,7 +4,14 @@ import pandas as pd
 
 
 def arrange(*args, **kwargs):
-    return partial(pd.DataFrame.sort_values, by=list(args), **kwargs)
+    desc = kwargs.pop('desc', [])
+    if isinstance(desc, bool):
+        desc = list(args) if desc else []
+    elif isinstance(desc, str):
+        desc = [desc]
+    ascending = [not(c in desc) for c in args]
+    return partial(pd.DataFrame.sort_values, by=list(args), 
+                   ascending=ascending, **kwargs)
 
 
 def filter(*args, **kwargs):
