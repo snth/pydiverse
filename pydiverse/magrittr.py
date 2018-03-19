@@ -21,6 +21,7 @@ class Pipe:
                 state, self.state = self.state, EMPTY
                 return state
             else:
+                # FIXME: Display warning about forgotten 'done'
                 raise NotImplementedError((type(self.state), type(operand)))
         except:
             # Ensure `do` instance is reset properly on errors
@@ -28,7 +29,21 @@ class Pipe:
             raise
         return self
 
-    __or__ = __rshift__
+    def __lshift__(self, operand):
+        "Like >> but doesn't update state so used for its side-effects"
+        try:
+            if self.state is EMPTY:
+                self.state = operand
+            elif callable(operand):
+                result = operand(self.state)    # noqa:
+            elif operand is DONE:
+                state, self.state = self.state, EMPTY
+                return state
+        except:
+            # Ensure `do` instance is reset properly on errors
+            self.state = EMPTY
+            raise
+        return self
 
 do = Pipe()
 done = DONE

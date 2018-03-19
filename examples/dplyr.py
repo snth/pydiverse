@@ -6,29 +6,20 @@ from pydiverse import *
 
 df = pd.DataFrame(np.arange(12).reshape(4,3), columns=list('abc'))
 
-# printing
-(do
- >> df
- >> print
- >> done
- )
-
 # arrange
 (do
  >> df
- >> mutate('d = c % 2')
- >> arrange('d', 'c', desc='c')
+ << print('Initial DataFrame:')
  >> print
- >> done
- )
-
-
-# group_by
-(do
- >> df
  >> mutate('d = c % 2')
+ << print('After mutate:')
+ >> print 
+ >> arrange('d', 'c', desc='c')
+ << print('After arrange:')
+ >> print
  >> group_by('d')
  >> summarise('sum')
+ << print('After group_by("d") >> summarise("sum"):')
  >> print
  >> done
  )
