@@ -1,25 +1,31 @@
 from __future__ import print_function
 
+EMPTY = object()
 DONE = object()
 
 
 class Pipe:
 
-    def __init__(self, state=None):
+    def __init__(self, state=EMPTY):
         self.state = state
 
     def __rshift__(self, operand):
-        print(self.state)
-        if self.state is None:
-            self.state = operand
-        elif callable(operand):
-            result = operand(self.state)
-            if result is not None:
-                self.state = result
-        elif operand is DONE:
-            return self.state
-        else:
-            raise NotImplementedError((type(self.state), type(operand)))
+        try:
+            if self.state is EMPTY:
+                self.state = operand
+            elif callable(operand):
+                result = operand(self.state)
+                if result is not None:
+                    self.state = result
+            elif operand is DONE:
+                state, self.state = self.state, EMPTY
+                return state
+            else:
+                raise NotImplementedError((type(self.state), type(operand)))
+        except:
+            # Ensure `do` instance is reset properly on errors
+            self.state = EMPTY
+            raise
         return self
 
     __or__ = __rshift__
