@@ -1,4 +1,5 @@
 from __future__ import print_function
+from types import MethodType
 
 
 class PartialAction:
@@ -31,7 +32,7 @@ class DataAction:
         elif len(callargs)>1:
             raise NotImplementedError()
         input = callargs[0]
-        if isinstance(input, self.__class__):
+        if isinstance(input, DataAction):
             return DataAction(lambda x: self.action(input.action(x)))
         elif callable(input):
             return DataAction(lambda *args, **kwargs: 
@@ -42,16 +43,34 @@ class DataAction:
     def __rshift__(self, right):
         if isinstance(right, DataAction):
             return right(self)
-        elif right is None:
-            return self.action()
         else:
+            # Try to promote right hand side to DataAction
             return DataAction(right)(self)
 
     def __rrshift__(self, left):
-        if callable(left):
-            return self(left)
-        else:
-            return self(left)
+        return self(left)
+        # if callable(left):
+        #     return self(left)
+        # else:
+        #     return self(left)
+
+
+def import_methods(obj, namespace, strict=True):
+    type_ = obj.__class__ if strict else None
+    for name in dir(obj):
+        if name.startswith('_'):
+            continue
+        try:
+            attr = getattr(obj, name)
+            if isinstance(attr, MethodType):
+                method = attr.__func__
+            # elif isinstance(attr, BuiltinMethodType):
+            #     method = getattr(obj.__class__, name)
+            else:
+                contune
+            namespace[name] = PartialAction(method, type_=type_)
+        except Exception as ex:
+            pass
 
 
 if __name__=='__main__':
