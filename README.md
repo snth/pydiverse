@@ -17,3 +17,6 @@ their exploratory data analysis.
 * ggplot
 * mapping with toolz and fn
 
+## TODO ##
+
+* Create do mode with numeric indices for args and arbitrary for kwargs

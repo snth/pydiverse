@@ -1,66 +1,61 @@
 from __future__ import print_function
 
-EMPTY = object()
-DONE = object()
+
+class PartialAction:
+
+    def __init__(self, func, type_=None):
+        if not callable(func):
+            raise TypeError(func)
+        self.func = func
+        self.type_ = type_
+
+    def __call__(self, *args, **kwargs):
+        def _action(obj):
+            if self.type_ is not None and not isinstance(obj, self.type_):
+                raise TypeError('Expected {}: received {}'
+                                .format(self.type_, type(obj)))
+            return self.func(obj, *args, **kwargs)
+        return DataAction(_action)
 
 
-class Pipe:
+class DataAction:
 
-    def __init__(self, state=EMPTY):
-        self.state = state
+    def __init__(self, action):
+        if not callable(action):
+            raise ValueError(action)
+        self.action = action
 
-    def __rshift__(self, operand):
-        try:
-            if self.state is EMPTY:
-                self.state = operand
-            elif callable(operand):
-                result = operand(self.state)
-                if result is not None:
-                    self.state = result
-            elif operand is DONE:
-                state, self.state = self.state, EMPTY
-                return state
-            else:
-                # FIXME: Display warning about forgotten 'done'
-                raise NotImplementedError((type(self.state), type(operand)))
-        except:
-            # Ensure `do` instance is reset properly on errors
-            self.state = EMPTY
-            raise
-        return self
+    def __call__(self, *callargs):
+        if len(callargs)==0:
+            return self.action()
+        elif len(callargs)>1:
+            raise NotImplementedError()
+        input = callargs[0]
+        if isinstance(input, self.__class__):
+            return DataAction(lambda x: self.action(input.action(x)))
+        elif callable(input):
+            return DataAction(lambda *args, **kwargs: 
+                              self.action(input(*args, **kwargs)))
+        else:
+            return self.action(input)
 
-    def __lshift__(self, operand):
-        "Like >> but doesn't update state so used for its side-effects"
-        try:
-            if self.state is EMPTY:
-                self.state = operand
-            elif callable(operand):
-                result = operand(self.state)    # noqa:
-            elif operand is DONE:
-                state, self.state = self.state, EMPTY
-                return state
-        except:
-            # Ensure `do` instance is reset properly on errors
-            self.state = EMPTY
-            raise
-        return self
+    def __rshift__(self, right):
+        if isinstance(right, DataAction):
+            return right(self)
+        elif right is None:
+            return self.action()
+        else:
+            return DataAction(right)(self)
 
-do = Pipe()
-done = DONE
+    def __rrshift__(self, left):
+        if callable(left):
+            return self(left)
+        else:
+            return self(left)
+
 
 if __name__=='__main__':
     print('first')
-    print(Pipe(5) >> (lambda x: 2*x) >> (lambda x: x+1) >> done)
+    print(5 >> DataAction(lambda x: 2*x) >> DataAction(lambda x: x+1))
     print('second')
-    (do
-     >> range(5)
-     >> (lambda x: [5*i for i in x])
-     >> done
-     )  # noqa: W503
-    print('third')
-    do = Pipe()
-    (do
-     | range(5)
-     | (lambda x: [5*i for i in x])
-     | done
-     )
+    print(range(5) >> DataAction(lambda x: [5*i for i in x]))
